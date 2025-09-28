@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استخراج منتجات سوق الجملة - طلبات</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🛒 استخراج منتجات سوق الجملة</h1>
+            <p>أداة لاستخراج جميع منتجات سوق الجملة من موقع طلبات مع الأكواد والأسعار والصور</p>
+        </header>
+
+        <div class="controls-section">
+            <div class="url-input-section">
+                <label for="storeUrl">رابط المتجر:</label>
+                <select id="storeSelect">
+                    <option value="https://souqgomlaa.almatjar.store/ar/shop">سوق الجملة - المتجر الرئيسي</option>
+                    <option value="https://www.talabat.com/ar/egypt/groceries/7081/souq-el-gomla">طلبات - منطقة سوق الجملة</option>
+                    <option value="custom">رابط مخصص</option>
+                </select>
+                <input type="url" id="customUrl" placeholder="أدخل رابط مخصص..." style="display: none;">
+            </div>
+            
+            <div class="action-buttons">
+                <button id="extractBtn" class="extract-btn">🔍 استخراج المنتجات</button>
+                <button id="exportBtn" class="export-btn" disabled>📥 تصدير البيانات</button>
+                <button id="clearBtn" class="clear-btn">🗑️ مسح البيانات</button>
+            </div>
+        </div>
+
+        <div class="status-section">
+            <div id="status" class="status hidden"></div>
+            <div id="progress" class="progress hidden">
+                <div class="progress-bar"></div>
+            </div>
+        </div>
+
+        <div class="results-section">
+            <div class="results-header hidden">
+                <h2>📋 نتائج الاستخراج</h2>
+                <div class="results-summary">
+                    <span class="total-products">إجمالي المنتجات: <span id="totalCount">0</span></span>
+                    <span class="available-products">متوفر: <span id="availableCount">0</span></span>
+                    <span class="unavailable-products">غير متوفر: <span id="unavailableCount">0</span></span>
+                </div>
+            </div>
+            
+            <div class="filter-section hidden">
+                <input type="text" id="searchFilter" placeholder="🔍 البحث في المنتجات...">
+                <select id="statusFilter">
+                    <option value="all">جميع المنتجات</option>
+                    <option value="available">المتوفر فقط</option>
+                    <option value="unavailable">غير المتوفر فقط</option>
+                </select>
+            </div>
+
+            <div id="productsTable" class="products-table hidden"></div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
