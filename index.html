@@ -14,6 +14,13 @@
             <p>أداة لاستخراج جميع منتجات سوق الجملة من موقع طلبات مع الأكواد والأسعار والصور</p>
         </header>
 
+        <div class="server-status" id="serverStatus">
+            <div class="status-indicator">
+                <span class="status-dot" id="statusDot"></span>
+                <span id="statusText">جاري فحص الخادم...</span>
+            </div>
+        </div>
+
         <div class="controls-section">
             <div class="url-input-section">
                 <label for="storeUrl">رابط المتجر:</label>
@@ -29,6 +36,32 @@
                 <button id="extractBtn" class="extract-btn">🔍 استخراج المنتجات</button>
                 <button id="exportBtn" class="export-btn" disabled>📥 تصدير البيانات</button>
                 <button id="clearBtn" class="clear-btn">🗑️ مسح البيانات</button>
+            </div>
+
+            <div class="help-section">
+                <details>
+                    <summary>🎆 مراكز المساعدة والإرشادات</summary>
+                    <div class="help-content">
+                        <h4>🔍 طريقة الاستخدام:</h4>
+                        <ol>
+                            <li>اختر المتجر من القائمة أو أدخل رابطاً مخصصاً</li>
+                            <li>اضغط "استخراج المنتجات"</li>
+                            <li>انتظر حتى اكتمال العملية</li>
+                            <li>راجع النتائج وصدرها بصيغة CSV/JSON</li>
+                        </ol>
+                        
+                        <h4>⚠️ إذا لم يعمل الاستخراج:</h4>
+                        <ul>
+                            <li>تأكد من تشغيل الخادم: <code>npm start</code></li>
+                            <li>استخدم تطبيق Python: <code>python extractor.py</code></li>
+                            <li>تحقق من صحة الرابط</li>
+                        </ul>
+                        
+                        <h4>💻 للمطورين:</h4>
+                        <p>API Endpoint: <code>POST /api/extract</code></p>
+                        <p>اقرأ <a href="README.md" target="_blank">README.md</a> للتفاصيل الكاملة</p>
+                    </div>
+                </details>
             </div>
         </div>
 
@@ -63,5 +96,6 @@
     </div>
 
     <script src="script.js"></script>
+    <script src="client-server-integration.js"></script>
 </body>
 </html>

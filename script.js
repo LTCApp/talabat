@@ -1,13 +1,15 @@
+// تحديث script.js للاستخراج الحقيقي
 class WholesaleProductExtractor {
     constructor() {
         this.products = [];
         this.filteredProducts = [];
+        this.isExtractingReal = false;
         this.init();
     }
 
     init() {
         this.bindEvents();
-        this.loadSampleData();
+        this.showStatus('جاهز للاستخراج. اختر المتجر واضغط "استخراج المنتجات"', 'info');
     }
 
     bindEvents() {
@@ -71,21 +73,34 @@ class WholesaleProductExtractor {
         extractBtn.disabled = true;
         extractBtn.textContent = '⏳ جاري الاستخراج...';
         
-        this.showStatus('بدء عملية استخراج المنتجات...', 'info');
-        this.showProgress(20);
+        this.showStatus('بدء عملية استخراج المنتجات الحقيقية...', 'info');
+        this.showProgress(10);
 
         try {
-            // محاكاة عملية الاستخراج
-            await this.simulateExtraction();
+            // تحديد نوع الموقع
+            if (url.includes('souqgomlaa.almatjar.store')) {
+                await this.extractFromSouqGomla(url);
+            } else if (url.includes('talabat.com')) {
+                await this.extractFromTalabat(url);
+            } else {
+                await this.extractFromGenericSite(url);
+            }
             
-            this.showProgress(100);
-            this.showStatus(`تم استخراج ${this.products.length} منتج بنجاح!`, 'success');
-            
-            this.displayResults();
+            if (this.products.length > 0) {
+                this.showProgress(100);
+                this.showStatus(`تم استخراج ${this.products.length} منتج بنجاح!`, 'success');
+                this.displayResults();
+            } else {
+                this.showStatus('لم يتم العثور على منتجات. تحقق من الرابط أو جرب رابطاً آخر.', 'error');
+            }
             
         } catch (error) {
             console.error('خطأ في الاستخراج:', error);
-            this.showStatus('حدث خطأ أثناء استخراج المنتجات', 'error');
+            this.showStatus(`خطأ في الاستخراج: ${error.message}`, 'error');
+            
+            // في حالة فشل الاستخراج، عرض البيانات التجريبية
+            this.showStatus('تعذر الاستخراج المباشر. جاري عرض بيانات تجريبية...', 'info');
+            await this.loadDemoData();
         } finally {
             extractBtn.disabled = false;
             extractBtn.textContent = '🔍 استخراج المنتجات';
@@ -93,19 +108,338 @@ class WholesaleProductExtractor {
         }
     }
 
-    async simulateExtraction() {
-        // محاكاة تأخير الشبكة
-        for (let i = 20; i <= 80; i += 20) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-            this.showProgress(i);
-        }
+    // استخراج من سوق الجملة الحقيقي
+    async extractFromSouqGomla(url) {
+        this.showProgress(20);
+        this.showStatus('جاري الاتصال بسوق الجملة...', 'info');
         
-        // تحديث البيانات مع منتجات من البيانات الحقيقية
-        this.products = this.getSampleProducts();
-        this.filteredProducts = [...this.products];
+        try {
+            // محاولة استخدام طرق مختلفة للاستخراج
+            const methods = [
+                () => this.corsProxyExtract(url),
+                () => this.directFetch(url),
+                () => this.jsonpExtract(url)
+            ];
+
+            for (let i = 0; i < methods.length; i++) {
+                try {
+                    this.showProgress(30 + (i * 20));
+                    this.showStatus(`جاري تجربة طريقة الاستخراج ${i + 1}...`, 'info');
+                    
+                    const html = await methods[i]();
+                    if (html) {
+                        this.products = this.parseSouqGomlaHTML(html);
+                        if (this.products.length > 0) {
+                            this.filteredProducts = [...this.products];
+                            return;
+                        }
+                    }
+                } catch (error) {
+                    console.warn(`فشلت طريقة ${i + 1}:`, error);
+                    continue;
+                }
+            }
+            
+            throw new Error('فشل في جميع طرق الاستخراج');
+            
+        } catch (error) {
+            console.error('خطأ في استخراج سوق الجملة:', error);
+            throw new Error('تعذر الوصول إلى سوق الجملة. قد يكون الموقع محمي أو يتطلب تسجيل دخول.');
+        }
     }
 
-    getSampleProducts() {
+    // طريقة CORS Proxy
+    async corsProxyExtract(url) {
+        const proxies = [
+            'https://api.allorigins.win/get?url=',
+            'https://cors-anywhere.herokuapp.com/',
+            'https://api.codetabs.com/v1/proxy?quest='
+        ];
+
+        for (const proxy of proxies) {
+            try {
+                const response = await fetch(proxy + encodeURIComponent(url), {
+                    method: 'GET',
+                    headers: {
+                        'Accept': 'application/json, text/html',
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                    }
+                });
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    return data.contents || data.data || data;
+                }
+            } catch (error) {
+                console.warn(`فشل Proxy ${proxy}:`, error);
+                continue;
+            }
+        }
+        throw new Error('فشل في جميع CORS proxies');
+    }
+
+    // طريقة Fetch مباشرة
+    async directFetch(url) {
+        const response = await fetch(url, {
+            method: 'GET',
+            mode: 'cors',
+            headers: {
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'User-Agent': 'Mozilla/5.0 (compatible; ProductExtractor/1.0)'
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`);
+        }
+        
+        return await response.text();
+    }
+
+    // طريقة JSONP (للمواقع التي تدعمها)
+    async jsonpExtract(url) {
+        return new Promise((resolve, reject) => {
+            const script = document.createElement('script');
+            const callbackName = 'jsonp_callback_' + Date.now();
+            
+            window[callbackName] = (data) => {
+                document.head.removeChild(script);
+                delete window[callbackName];
+                resolve(data);
+            };
+            
+            script.onerror = () => {
+                document.head.removeChild(script);
+                delete window[callbackName];
+                reject(new Error('JSONP request failed'));
+            };
+            
+            script.src = `${url}?callback=${callbackName}`;
+            document.head.appendChild(script);
+            
+            // timeout بعد 10 ثوان
+            setTimeout(() => {
+                if (window[callbackName]) {
+                    document.head.removeChild(script);
+                    delete window[callbackName];
+                    reject(new Error('JSONP timeout'));
+                }
+            }, 10000);
+        });
+    }
+
+    // تحليل HTML واستخراج المنتجات
+    parseSouqGomlaHTML(html) {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const products = [];
+
+        // البحث عن عناصر المنتجات بطرق مختلفة
+        const selectors = [
+            '.product-item',
+            '.product',
+            '.item',
+            '[data-product]',
+            '.card',
+            '.product-card'
+        ];
+
+        let productElements = [];
+        for (const selector of selectors) {
+            productElements = doc.querySelectorAll(selector);
+            if (productElements.length > 0) break;
+        }
+
+        // إذا لم نجد عناصر محددة، نبحث في script tags للبيانات
+        if (productElements.length === 0) {
+            const scripts = doc.querySelectorAll('script');
+            for (const script of scripts) {
+                const text = script.textContent;
+                if (text.includes('product') && text.includes('price')) {
+                    try {
+                        // محاولة استخراج JSON من JavaScript
+                        const jsonMatch = text.match(/products\s*[:=]\s*(\[.*?\])/s);
+                        if (jsonMatch) {
+                            const productsData = JSON.parse(jsonMatch[1]);
+                            return this.formatProductsFromJSON(productsData);
+                        }
+                    } catch (e) {
+                        console.warn('فشل في تحليل JSON من script:', e);
+                    }
+                }
+            }
+        }
+
+        // استخراج المنتجات من العناصر
+        productElements.forEach((element, index) => {
+            try {
+                const product = this.extractProductFromElement(element, index);
+                if (product && product.name && product.code) {
+                    products.push(product);
+                }
+            } catch (error) {
+                console.warn(`خطأ في استخراج المنتج ${index}:`, error);
+            }
+        });
+
+        return products;
+    }
+
+    extractProductFromElement(element, index) {
+        // استخراج الكود
+        const code = this.extractText(element, [
+            '[data-product-id]',
+            '.product-id',
+            '.sku',
+            '.code'
+        ]) || `PROD_${Date.now()}_${index}`;
+
+        // استخراج الاسم
+        const name = this.extractText(element, [
+            '.product-title',
+            '.product-name',
+            'h2', 'h3', 'h4',
+            '.title',
+            '.name'
+        ]);
+
+        // استخراج السعر
+        const priceText = this.extractText(element, [
+            '.price',
+            '.product-price',
+            '.cost',
+            '[data-price]'
+        ]);
+        const price = this.extractPrice(priceText);
+
+        // استخراج الصورة
+        const image = this.extractImage(element);
+
+        // استخراج حالة التوفر
+        const status = this.extractStatus(element);
+
+        return {
+            code,
+            name: name || 'منتج غير محدد',
+            image,
+            price,
+            currency: 'جنيه',
+            status,
+            extractedAt: new Date().toISOString()
+        };
+    }
+
+    extractText(element, selectors) {
+        for (const selector of selectors) {
+            const el = element.querySelector(selector);
+            if (el) {
+                return el.textContent.trim() || el.getAttribute('data-product-id') || el.getAttribute('content');
+            }
+        }
+        return null;
+    }
+
+    extractPrice(priceText) {
+        if (!priceText) return 0;
+        const match = priceText.match(/([\d,]+\.?\d*)/);
+        return match ? parseFloat(match[1].replace(',', '')) : 0;
+    }
+
+    extractImage(element) {
+        const img = element.querySelector('img');
+        if (img) {
+            const src = img.getAttribute('data-src') || img.getAttribute('src');
+            if (src && !src.includes('loader.svg')) {
+                return src.startsWith('http') ? src : 'https:' + src;
+            }
+        }
+        return 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة';
+    }
+
+    extractStatus(element) {
+        const text = element.textContent.toLowerCase();
+        if (text.includes('غير متوفر') || text.includes('نفدت') || text.includes('out of stock')) {
+            return 'غير متوفر';
+        }
+        return 'متوفر';
+    }
+
+    formatProductsFromJSON(productsData) {
+        return productsData.map((item, index) => ({
+            code: item.id || item.sku || item.code || `JSON_${index}`,
+            name: item.name || item.title || 'منتج من JSON',
+            image: item.image || item.thumbnail || 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة',
+            price: parseFloat(item.price) || 0,
+            currency: 'جنيه',
+            status: item.stock > 0 ? 'متوفر' : 'غير متوفر',
+            extractedAt: new Date().toISOString()
+        }));
+    }
+
+    // استخراج من طلبات (يتطلب معالجة خاصة)
+    async extractFromTalabat(url) {
+        this.showProgress(25);
+        this.showStatus('طلبات يتطلب معالجة خاصة...', 'info');
+        
+        // طلبات يحتاج JavaScript rendering
+        throw new Error('استخراج طلبات يتطلب خادم backend مع Puppeteer أو Selenium. استخدم الخيار البديل أدناه.');
+    }
+
+    // استخراج عام للمواقع الأخرى
+    async extractFromGenericSite(url) {
+        this.showProgress(30);
+        this.showStatus('جاري تحليل الموقع...', 'info');
+        
+        try {
+            const html = await this.corsProxyExtract(url);
+            this.products = this.parseGenericHTML(html);
+            this.filteredProducts = [...this.products];
+        } catch (error) {
+            throw new Error('تعذر استخراج البيانات من هذا الموقع. قد يحتاج لمعالجة خاصة.');
+        }
+    }
+
+    parseGenericHTML(html) {
+        // تحليل عام للمواقع
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const products = [];
+
+        // البحث عن أي عناصر تحتوي على أسعار
+        const priceElements = doc.querySelectorAll('*');
+        const potentialProducts = [];
+
+        priceElements.forEach(el => {
+            const text = el.textContent;
+            if (text.match(/\d+\s*(جنيه|ريال|درهم|دولار)/) || text.match(/\$\d+/) || text.match(/\d+\.\d\d/)) {
+                potentialProducts.push(el.closest('div, article, section, li') || el);
+            }
+        });
+
+        // استخراج المنتجات المحتملة
+        potentialProducts.slice(0, 20).forEach((element, index) => {
+            const product = this.extractProductFromElement(element, index);
+            if (product.name && product.price > 0) {
+                products.push(product);
+            }
+        });
+
+        return products;
+    }
+
+    // تحميل بيانات تجريبية في حالة فشل الاستخراج
+    async loadDemoData() {
+        this.showProgress(60);
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        this.products = this.getDemoProducts();
+        this.filteredProducts = [...this.products];
+        this.displayResults();
+        
+        this.showStatus('تم عرض بيانات تجريبية. لاستخراج حقيقي، استخدم الخادم المرفق.', 'info');
+    }
+
+    getDemoProducts() {
         return [
             {
                 code: '2984',
@@ -140,102 +474,14 @@ class WholesaleProductExtractor {
                 status: 'متوفر'
             },
             {
-                code: '2988',
-                name: 'عرض (مشط رجالي لفرد الشعر و اللحية +ساعة تاتش دائرية أسود)',
-                image: 'https://tager-uploads.s3.eu-central-1.amazonaws.com/9d17aa94-3f2e-4ad7-bb7c-192d7be54758.jpg',
-                price: 240,
-                currency: 'جنيه',
-                status: 'متوفر'
-            },
-            {
-                code: '2989',
-                name: 'عرض 17 قطعة (عرض 12 قلم ليب لاينر ام ان +بلاشر دايموند 6 اللوان+هايلايت + برونزر باليت+بلاشر + هايلايتر باليت+عرض 10 فرش ميك اب+مكبر شفايف فيكتوريا سيكريت)',
-                image: 'https://tager-uploads.s3.eu-central-1.amazonaws.com/0158a7cd-3d52-4585-9019-42ea83e789e3.jpg',
-                price: 220,
-                currency: 'جنيه',
-                status: 'متوفر'
-            },
-            {
-                code: '2990',
-                name: 'عرض قطعتين درج الثلاجة العجيب',
-                image: 'https://tager-uploads.s3.eu-central-1.amazonaws.com/fb3898c5-d8d1-46bd-a0e8-4375aafd85a2.jpg',
-                price: 105,
-                currency: 'جنيه',
-                status: 'متوفر'
-            },
-            {
-                code: '2991',
-                name: 'عرض قطعتين كشاف طاقه شمسيه صغير',
-                image: 'https://tager-uploads.s3.eu-central-1.amazonaws.com/cfb59642-ebf9-48ea-9127-c90f6ce571ed.jpg',
-                price: 150,
-                currency: 'جنيه',
-                status: 'متوفر'
-            },
-            {
                 code: '2992',
                 name: 'عرض 5 قطع اعواد تسليك الاحواض العجيبة',
                 image: 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة',
                 price: 150,
                 currency: 'جنيه',
                 status: 'غير متوفر'
-            },
-            {
-                code: '2993',
-                name: 'عرض قطعتين وصلة حنفية Turbo Flex 360',
-                image: 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة',
-                price: 170,
-                currency: 'جنيه',
-                status: 'غير متوفر'
-            },
-            {
-                code: '2994',
-                name: 'ساعة تاتش دائرية أسود + حظاظة يد بقفل معدن + عرض 3 تيشيرت ديجيتال صيفى',
-                image: 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة',
-                price: 180,
-                currency: 'جنيه',
-                status: 'متوفر'
-            },
-            {
-                code: '2999',
-                name: 'عرض ( منظم قعدة السيارة +منظم سيارة بUSB)',
-                image: 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة',
-                price: 220,
-                currency: 'جنيه',
-                status: 'متوفر'
-            },
-            {
-                code: '3000',
-                name: 'عرض شراب ركبة زحف للأطفال +جوانتى تسنين الاطفال',
-                image: 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة',
-                price: 160,
-                currency: 'جنيه',
-                status: 'متوفر'
-            },
-            {
-                code: '3001',
-                name: 'عرض (2 طقم شراب ركبة زحف للأطفال )',
-                image: 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة',
-                price: 115,
-                currency: 'جنيه',
-                status: 'متوفر'
-            },
-            {
-                code: '3002',
-                name: 'عرض (القلم الايلينر لاصق الرموش +عرض 3 قطع رموش 5D )',
-                image: 'https://via.placeholder.com/200x200/f0f0f0/999?text=لا+توجد+صورة',
-                price: 170,
-                currency: 'جنيه',
-                status: 'متوفر'
             }
         ];
-    }
-
-    loadSampleData() {
-        // تحميل بيانات تجريبية عند بدء التشغيل
-        this.products = this.getSampleProducts();
-        this.filteredProducts = [...this.products];
-        this.displayResults();
-        this.showStatus('تم تحميل بيانات تجريبية للعرض', 'info');
     }
 
     displayResults() {
@@ -244,7 +490,6 @@ class WholesaleProductExtractor {
         const productsTable = document.getElementById('productsTable');
         const exportBtn = document.getElementById('exportBtn');
 
-        // إظهار العناصر
         resultsHeader.classList.remove('hidden');
         filterSection.classList.remove('hidden');
         productsTable.classList.remove('hidden');
@@ -333,11 +578,9 @@ class WholesaleProductExtractor {
             return;
         }
 
-        // تصدير CSV
         const csvData = this.convertToCSV();
         this.downloadFile(csvData, 'wholesale_products.csv', 'text/csv');
         
-        // تصدير JSON
         const jsonData = JSON.stringify(this.products, null, 2);
         this.downloadFile(jsonData, 'wholesale_products.json', 'application/json');
         
@@ -375,7 +618,6 @@ class WholesaleProductExtractor {
             this.products = [];
             this.filteredProducts = [];
             
-            // إخفاء النتائج
             document.querySelector('.results-header').classList.add('hidden');
             document.querySelector('.filter-section').classList.add('hidden');
             document.getElementById('productsTable').classList.add('hidden');

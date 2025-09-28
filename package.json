@@ -1,0 +1,37 @@
+{
+  "name": "wholesale-product-extractor",
+  "version": "1.0.0",
+  "description": "\u0623\u062f\u0627\u0629 \u0644\u0627\u0633\u062a\u062e\u0631\u0627\u062c \u0645\u0646\u062a\u062c\u0627\u062a \u0633\u0648\u0642 \u0627\u0644\u062c\u0645\u0644\u0629 \u0645\u0646 \u0645\u0648\u0627\u0642\u0639 \u0645\u062e\u062a\u0644\u0641\u0629",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "install-deps": "npm install",
+    "setup": "npm install && echo '\u062a\u0645 \u062a\u062b\u0628\u064a\u062a \u0627\u0644\u0645\u062a\u0637\u0644\u0628\u0627\u062a \u0628\u0646\u062c\u0627\u062d! \u0627\u0633\u062a\u062e\u062f\u0645 npm start \u0644\u062a\u0634\u063a\u064a\u0644 \u0627\u0644\u062e\u0627\u062f\u0645'"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "puppeteer": "^21.5.0",
+    "cheerio": "^1.0.0-rc.12",
+    "axios": "^1.6.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  },
+  "keywords": [
+    "web-scraping",
+    "product-extraction", 
+    "wholesale",
+    "talabat",
+    "souq-gomla",
+    "\u0633\u0648\u0642 \u0627\u0644\u062c\u0645\u0644\u0629",
+    "\u0637\u0644\u0628\u0627\u062a"
+  ],
+  "author": "MiniMax Agent",
+  "license": "MIT",
+  "engines": {
+    "node": ">=14.0.0",
+    "npm": ">=6.0.0"
+  }
+}
